@@ -3,6 +3,10 @@ package nagus
 import (
 	"gopkg.in/telegram-bot-api.v4"
 	"log"
+	"image/png"
+	"os"
+	"math/rand"
+	"bytes"
 )
 
 type NagusBot struct {
@@ -29,11 +33,25 @@ func (b *NagusBot) Main() error {
 		}
 
 		log.Printf("[%s} %s", update.Message.From.UserName, update.Message.Text)
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		b.Bot.Send(msg)
+		buf := bytes.Buffer{}
+		buf.WriteString("./")
+		buf.WriteString(string(rand.Int63()))
+		buf.WriteString(".png")
+		out, err := os.Create(buf.String())
+		img := WriteToImage(update.Message.Text)
+		err = png.Encode(out, img)
+		if err != nil {
+			log.Println(err)
+		}
+		out.Sync()
+		out.Close()
+		photoConf := tgbotapi.NewPhotoUpload(update.Message.Chat.ID, buf.String())
+		photoConf.ReplyToMessageID = update.Message.MessageID
+		_,err = b.Bot.Send(photoConf)
+		if err != nil {
+			log.Println(err)
+		}
+		os.Remove(buf.String())
 	}
 	return nil
 }

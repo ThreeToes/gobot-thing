@@ -2,10 +2,29 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/golang/freetype"
+  packages = [
+    ".",
+    "raster",
+    "truetype"
+  ]
+  revision = "e2365dfdc4a05e4b8299a783240d4a7d5a65d4e4"
+
+[[projects]]
   name = "github.com/technoweenie/multipartstreamer"
   packages = ["."]
   revision = "a90a01d73ae432e2611d178c18367fbaa13e0154"
   version = "v1.0.1"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/image"
+  packages = [
+    "font",
+    "math/fixed"
+  ]
+  revision = "f315e440302883054d0c2bd85486878cb4f8572c"
 
 [[projects]]
   name = "gopkg.in/telegram-bot-api.v4"
@@ -16,6 +35,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "2e8aaf880849aafe9ba8d900fc75547255b682b4e1946459c3c28b08c6fe02c6"
+  inputs-digest = "43adf25bca2c88c77166fe87352ec2ab2dc8ff878b4ecb7385066f50352a10cf"
   solver-name = "gps-cdcl"
   solver-version = 1
