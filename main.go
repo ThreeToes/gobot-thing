@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 )
 
-func main() {
+func GetConfigFolder() string {
 	usr, err := user.Current()
 	if err != nil {
 		log.Panic(err)
@@ -20,11 +20,19 @@ func main() {
 	pathBuffer.WriteString(".nagus")
 	if _, err = os.Stat(pathBuffer.String()); os.IsNotExist(err) {
 		os.Mkdir(pathBuffer.String(), os.ModePerm)
+		imageConf := bytes.NewBufferString(pathBuffer.String())
+		imageConf.WriteRune(os.PathSeparator)
+		imageConf.WriteString("images")
 	}
+	return pathBuffer.String()
+}
+
+func main() {
+	pathBuffer := bytes.NewBufferString(GetConfigFolder())
 	pathBuffer.WriteRune(os.PathSeparator)
 	pathBuffer.WriteString("config.json")
 
-	if _, err = os.Stat(pathBuffer.String()); os.IsNotExist(err) {
+	if _, err := os.Stat(pathBuffer.String()); os.IsNotExist(err) {
 		var conf *nagus.NagusConfig = &nagus.NagusConfig{
 			ApiKey: "insert-api-key-here",
 		}

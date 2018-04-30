@@ -8,7 +8,37 @@ import (
 	"io/ioutil"
 	"log"
 	"image/color"
+	"math/rand"
+	"os"
+	_ "image/png"
+	_ "image/jpeg"
+	_ "image/gif"
+	"fmt"
+	"bytes"
+	"os/user"
+	"image/draw"
 )
+
+// Defines a box that we can write text to
+type TemplateBox struct {
+	Bounds image.Rectangle `json:"bounds"`
+	Group string `json:"group"`
+}
+
+// Defines a template for images
+type MacroTemplate struct {
+	Boxes []TemplateBox `json:"boxes"`
+	SourceImage image.Image `json:"source_image"`
+	SourceMetadata image.Config `json:"source_metadata"`
+}
+
+type UnknownType struct {
+	Path string
+}
+
+func (err *UnknownType) Error() string {
+	return fmt.Sprintf("Could not load path %s! Unknown filetype", err.Path)
+}
 
 func GetFont() (*truetype.Font, error){
 	f,err := ioutil.ReadFile("./Funhouse.ttf")
@@ -18,28 +48,87 @@ func GetFont() (*truetype.Font, error){
 	return truetype.Parse(f)
 }
 
+func GetRandomImage(imageDirectory string) (MacroTemplate, error) {
+	files, err := ioutil.ReadDir(imageDirectory)
+	if err != nil {
+		return MacroTemplate{}, err
+	}
+	fileCount := len(files)
+	pick := rand.Int()
+	if pick < 0 {
+		pick = pick * -1
+	}
+	pick = pick % fileCount
+	pickedFile := files[pick]
+	pathBuffer := bytes.NewBufferString(imageDirectory)
+	pathBuffer.WriteRune(os.PathSeparator)
+	pathBuffer.WriteString(pickedFile.Name())
+	img, err := OpenImage(pathBuffer.String())
+	if err != nil {
+		return MacroTemplate{}, err
+	}
+	imgConf, err := GetConfig(pathBuffer.String())
+	return MacroTemplate{
+		SourceImage: img,
+		Boxes: nil,
+		SourceMetadata: imgConf,
+	}, nil
+}
+
+func GetConfig(path string) (image.Config,error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return image.Config{}, err
+	}
+	img, str, err := image.DecodeConfig(f)
+	log.Println(str)
+	defer f.Close()
+	return img, err
+}
+
+func OpenImage(path string) (image.Image, error){
+	f, err := os.Open(path)
+	if err != nil {
+		return image.NewUniform(color.Black), err
+	}
+	img, str, err := image.Decode(f)
+	log.Println(str)
+	defer f.Close()
+	return img, err
+}
+
 func WriteToImage(phrase string) image.Image {
-	rect := image.Rect(0, 0, 450, 450)
-	img := image.NewRGBA(rect)
-	for x := 0; x < 450; x++ {
-		for y := 0; y < 450; y++ {
-			img.Set(x, y, color.RGBA{255,255,255,255})
-		}
+	usr, err := user.Current()
+	if err != nil {
+		log.Panic(err)
+	}
+	var pathBuffer bytes.Buffer
+	pathBuffer.WriteString(usr.HomeDir)
+	pathBuffer.WriteRune(os.PathSeparator)
+	pathBuffer.WriteString(".nagus")
+	pathBuffer.WriteRune(os.PathSeparator)
+	pathBuffer.WriteString("images")
+	img, err := GetRandomImage(pathBuffer.String())
+	if err != nil {
+		log.Panic(err)
 	}
 	ctx := freetype.NewContext()
 	font, err := GetFont()
 	if err != nil {
 		log.Fatal(err)
 	}
+	rect := image.Rect(0,0, img.SourceMetadata.Width, img.SourceMetadata.Height)
+	drawImg := image.NewRGBA(rect)
+	draw.Draw(drawImg, rect, img.SourceImage, rect.Min, draw.Src)
 	ctx.SetFont(font)
 	ctx.SetFontSize(15)
-	ctx.SetDst(img)
-	ctx.SetClip(img.Bounds())
+	ctx.SetDst(drawImg)
+	ctx.SetClip(rect)
 	ctx.SetSrc(image.NewUniform(color.RGBA{0,0,0,255}))
 
 	ctx.DrawString(phrase, fixed.Point26_6{
 		X: ctx.PointToFixed(15 * 1.5),
 		Y: ctx.PointToFixed(15 * 1.5),
 	})
-	return img
+	return drawImg
 }
