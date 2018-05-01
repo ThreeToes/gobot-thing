@@ -16,11 +16,21 @@ import (
 	"fmt"
 	"bytes"
 	"image/draw"
+	"path/filepath"
+	"encoding/json"
+	"strings"
 )
+
+type TemplateBounds struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+	Width int `json:"width"`
+	Height int `json:"height"`
+}
 
 // Defines a box that we can write text to
 type TemplateBox struct {
-	Bounds image.Rectangle `json:"bounds"`
+	Bounds TemplateBounds `json:"bounds"`
 	Group string `json:"group"`
 }
 
@@ -71,6 +81,9 @@ func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
 		pick = pick * -1
 	}
 	pick = pick % fileCount
+	for ;strings.HasSuffix(files[pick].Name(), "json"); {
+		pick = (pick + 1) % fileCount
+	}
 	pickedFile := files[pick]
 	pathBuffer := bytes.NewBufferString(imageDirectory.String())
 	pathBuffer.WriteRune(os.PathSeparator)
@@ -80,11 +93,28 @@ func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
 		return MacroTemplate{}, err
 	}
 	imgConf, err := GetConfig(pathBuffer.String())
+	if err != nil {
+		return MacroTemplate{}, err
+	}
+	boxConf, err := svc.GetImageConfig(pathBuffer.String())
 	return MacroTemplate{
 		SourceImage: img,
-		Boxes: nil,
+		Boxes: boxConf,
 		SourceMetadata: imgConf,
 	}, nil
+}
+
+func (svc *ImageManager) GetImageConfig(path string) ([]TemplateBox, error) {
+	ext := filepath.Ext(path)
+	fileBuf := bytes.NewBufferString(path[0: len(path) - len(ext)])
+	fileBuf.WriteString(".json")
+	contents, err := ioutil.ReadFile(fileBuf.String())
+	var template []TemplateBox
+	if err != nil {
+		return template, err
+	}
+	err = json.Unmarshal(contents, &template)
+	return template, err
 }
 
 func GetConfig(path string) (image.Config,error) {
@@ -123,14 +153,16 @@ func (svc *ImageManager) WriteToImage(phrase string) image.Image {
 	drawImg := image.NewRGBA(rect)
 	draw.Draw(drawImg, rect, img.SourceImage, rect.Min, draw.Src)
 	ctx.SetFont(font)
-	ctx.SetFontSize(15)
+	fontSize := float64(15)
+	ctx.SetFontSize(fontSize)
 	ctx.SetDst(drawImg)
 	ctx.SetClip(rect)
 	ctx.SetSrc(image.NewUniform(color.RGBA{0,0,0,255}))
-
+	xPos := float64(img.Boxes[0].Bounds.X)
+	yPos := float64(img.Boxes[0].Bounds.Y)
 	ctx.DrawString(phrase, fixed.Point26_6{
-		X: ctx.PointToFixed(15 * 1.5),
-		Y: ctx.PointToFixed(15 * 1.5),
+		X: ctx.PointToFixed(xPos),
+		Y: ctx.PointToFixed(yPos),
 	})
 	return drawImg
 }
