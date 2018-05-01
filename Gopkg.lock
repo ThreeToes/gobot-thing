@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  name = "github.com/fogleman/gg"
+  packages = ["."]
+  revision = "6166aa3c1afaee416f384645a81636267aee6d25"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/freetype"
   packages = [
@@ -22,6 +28,8 @@
   name = "golang.org/x/image"
   packages = [
     "font",
+    "font/basicfont",
+    "font/plan9font",
     "math/fixed"
   ]
   revision = "f315e440302883054d0c2bd85486878cb4f8572c"
@@ -35,6 +43,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f7af0b9c1a13343fd8bf7ae23fac53953d3a6bc7a14d1ca1392aa067b3c23b2c"
+  inputs-digest = "ef4f82a6eeff1c38bd127a628f0487ea9849ad9761d97c494017c5c2527caea5"
   solver-name = "gps-cdcl"
   solver-version = 1

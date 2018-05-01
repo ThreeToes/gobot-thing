@@ -2,8 +2,6 @@ package nagus
 
 import (
 	"image"
-	"github.com/golang/freetype"
-	"golang.org/x/image/math/fixed"
 	"github.com/golang/freetype/truetype"
 	"io/ioutil"
 	"log"
@@ -15,10 +13,10 @@ import (
 	_ "image/gif"
 	"fmt"
 	"bytes"
-	"image/draw"
 	"path/filepath"
 	"encoding/json"
 	"strings"
+	"github.com/fogleman/gg"
 )
 
 type TemplateBounds struct {
@@ -144,25 +142,12 @@ func (svc *ImageManager) WriteToImage(phrase string) image.Image {
 	if err != nil {
 		log.Panic(err)
 	}
-	ctx := freetype.NewContext()
-	font, err := GetFont()
-	if err != nil {
-		log.Fatal(err)
-	}
-	rect := image.Rect(0,0, img.SourceMetadata.Width, img.SourceMetadata.Height)
-	drawImg := image.NewRGBA(rect)
-	draw.Draw(drawImg, rect, img.SourceImage, rect.Min, draw.Src)
-	ctx.SetFont(font)
-	fontSize := float64(15)
-	ctx.SetFontSize(fontSize)
-	ctx.SetDst(drawImg)
-	ctx.SetClip(rect)
-	ctx.SetSrc(image.NewUniform(color.RGBA{0,0,0,255}))
+	sess := gg.NewContext(img.SourceMetadata.Width, img.SourceMetadata.Height)
+	sess.DrawImage(img.SourceImage, 0, 0)
 	xPos := float64(img.Boxes[0].Bounds.X)
 	yPos := float64(img.Boxes[0].Bounds.Y)
-	ctx.DrawString(phrase, fixed.Point26_6{
-		X: ctx.PointToFixed(xPos),
-		Y: ctx.PointToFixed(yPos),
-	})
-	return drawImg
+	sess.SetColor(color.Black)
+	sess.DrawStringWrapped(phrase, xPos, yPos, 0.0, 0.0, float64(img.Boxes[0].Bounds.Width), 1, gg.AlignLeft)
+
+	return sess.Image()
 }
