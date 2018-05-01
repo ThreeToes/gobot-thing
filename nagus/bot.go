@@ -10,8 +10,9 @@ import (
 )
 
 type NagusBot struct {
-	Bot* tgbotapi.BotAPI
-	Config NagusConfig
+	Bot 	*tgbotapi.BotAPI
+	Images 	*ImageManager
+	Config 	NagusConfig
 }
 
 func (b *NagusBot) Main() error {
@@ -38,7 +39,7 @@ func (b *NagusBot) Main() error {
 		buf.WriteString(string(rand.Int63()))
 		buf.WriteString(".png")
 		out, err := os.Create(buf.String())
-		img := WriteToImage(update.Message.Text)
+		img := b.Images.WriteToImage(update.Message.Text)
 		err = png.Encode(out, img)
 		if err != nil {
 			log.Println(err)
@@ -56,7 +57,7 @@ func (b *NagusBot) Main() error {
 	return nil
 }
 
-func BuildBot(config NagusConfig) (NagusBot, error) {
+func BuildBot(config NagusConfig, confFolder string) (NagusBot, error) {
 	bot, err := tgbotapi.NewBotAPI(config.ApiKey)
 	if err != nil {
 		return NagusBot{
@@ -67,5 +68,6 @@ func BuildBot(config NagusConfig) (NagusBot, error) {
 	return NagusBot{
 		Config:config,
 		Bot: bot,
+		Images: NewImageManager(confFolder),
 	}, nil
 }

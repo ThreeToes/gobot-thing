@@ -23,6 +23,7 @@ func GetConfigFolder() string {
 		imageConf := bytes.NewBufferString(pathBuffer.String())
 		imageConf.WriteRune(os.PathSeparator)
 		imageConf.WriteString("images")
+		os.Mkdir(pathBuffer.String(), os.ModePerm)
 	}
 	return pathBuffer.String()
 }
@@ -30,9 +31,10 @@ func GetConfigFolder() string {
 func main() {
 	pathBuffer := bytes.NewBufferString(GetConfigFolder())
 	pathBuffer.WriteRune(os.PathSeparator)
-	pathBuffer.WriteString("config.json")
+	confBuffer := bytes.NewBufferString(pathBuffer.String())
+	confBuffer.WriteString("config.json")
 
-	if _, err := os.Stat(pathBuffer.String()); os.IsNotExist(err) {
+	if _, err := os.Stat(confBuffer.String()); os.IsNotExist(err) {
 		var conf *nagus.NagusConfig = &nagus.NagusConfig{
 			ApiKey: "insert-api-key-here",
 		}
@@ -43,7 +45,7 @@ func main() {
 			return
 		}
 
-		file, err := os.Create(pathBuffer.String())
+		file, err := os.Create(confBuffer.String())
 		if err != nil {
 			log.Println("Could not initialise config!!!")
 			log.Panic(err.Error())
@@ -53,8 +55,8 @@ func main() {
 		file.Close()
 	}
 
-	log.Printf("Reading config from %s", pathBuffer.String())
-	conf, err := nagus.ReadConfig(pathBuffer.String())
+	log.Printf("Reading config from %s", confBuffer.String())
+	conf, err := nagus.ReadConfig(confBuffer.String())
 
 	if err != nil {
 		log.Panic(err)
@@ -63,7 +65,7 @@ func main() {
 
 	log.Printf("Using API Key %s", conf.ApiKey)
 
-	bot, err := nagus.BuildBot(conf)
+	bot, err := nagus.BuildBot(conf, pathBuffer.String())
 	if err != nil {
 		log.Panic(err)
 		return

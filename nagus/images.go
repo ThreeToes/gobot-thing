@@ -15,7 +15,6 @@ import (
 	_ "image/gif"
 	"fmt"
 	"bytes"
-	"os/user"
 	"image/draw"
 )
 
@@ -40,6 +39,16 @@ func (err *UnknownType) Error() string {
 	return fmt.Sprintf("Could not load path %s! Unknown filetype", err.Path)
 }
 
+type ImageManager struct {
+	ConfigFolder string
+}
+
+func NewImageManager(configPath string) *ImageManager {
+	return &ImageManager{
+		ConfigFolder: configPath,
+	}
+}
+
 func GetFont() (*truetype.Font, error){
 	f,err := ioutil.ReadFile("./Funhouse.ttf")
 	if err != nil {
@@ -48,8 +57,11 @@ func GetFont() (*truetype.Font, error){
 	return truetype.Parse(f)
 }
 
-func GetRandomImage(imageDirectory string) (MacroTemplate, error) {
-	files, err := ioutil.ReadDir(imageDirectory)
+func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
+	imageDirectory := bytes.NewBufferString(svc.ConfigFolder)
+	imageDirectory.WriteRune(os.PathSeparator)
+	imageDirectory.WriteString("images")
+	files, err := ioutil.ReadDir(imageDirectory.String())
 	if err != nil {
 		return MacroTemplate{}, err
 	}
@@ -60,7 +72,7 @@ func GetRandomImage(imageDirectory string) (MacroTemplate, error) {
 	}
 	pick = pick % fileCount
 	pickedFile := files[pick]
-	pathBuffer := bytes.NewBufferString(imageDirectory)
+	pathBuffer := bytes.NewBufferString(imageDirectory.String())
 	pathBuffer.WriteRune(os.PathSeparator)
 	pathBuffer.WriteString(pickedFile.Name())
 	img, err := OpenImage(pathBuffer.String())
@@ -97,18 +109,8 @@ func OpenImage(path string) (image.Image, error){
 	return img, err
 }
 
-func WriteToImage(phrase string) image.Image {
-	usr, err := user.Current()
-	if err != nil {
-		log.Panic(err)
-	}
-	var pathBuffer bytes.Buffer
-	pathBuffer.WriteString(usr.HomeDir)
-	pathBuffer.WriteRune(os.PathSeparator)
-	pathBuffer.WriteString(".nagus")
-	pathBuffer.WriteRune(os.PathSeparator)
-	pathBuffer.WriteString("images")
-	img, err := GetRandomImage(pathBuffer.String())
+func (svc *ImageManager) WriteToImage(phrase string) image.Image {
+	img, err := svc.GetRandomImage()
 	if err != nil {
 		log.Panic(err)
 	}
