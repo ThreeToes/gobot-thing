@@ -65,6 +65,20 @@ func GetFont() (*truetype.Font, error){
 	return truetype.Parse(f)
 }
 
+func RemoveExtensions(inf []os.FileInfo, extension string) []os.FileInfo{
+	if len(inf) == 0 {
+		return inf
+	}
+	for i := 0; i < len(inf); i++ {
+		fi := inf[i]
+		if strings.HasSuffix(fi.Name(), extension) {
+			inf[i] = inf[0]
+			return RemoveExtensions(inf[1:], extension)
+		}
+	}
+	return inf
+}
+
 func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
 	imageDirectory := bytes.NewBufferString(svc.ConfigFolder)
 	imageDirectory.WriteRune(os.PathSeparator)
@@ -73,15 +87,13 @@ func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
 	if err != nil {
 		return MacroTemplate{}, err
 	}
+	files = RemoveExtensions(files, "json")
 	fileCount := len(files)
 	pick := rand.Int()
 	if pick < 0 {
 		pick = pick * -1
 	}
 	pick = pick % fileCount
-	for ;strings.HasSuffix(files[pick].Name(), "json"); {
-		pick = (pick + 1) % fileCount
-	}
 	pickedFile := files[pick]
 	pathBuffer := bytes.NewBufferString(imageDirectory.String())
 	pathBuffer.WriteRune(os.PathSeparator)
