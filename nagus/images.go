@@ -140,7 +140,7 @@ func OpenImage(path string) (image.Image, error){
 
 // Get the largest possible font size we can fit here
 func SetFontSize(ctx *gg.Context, box *TemplateBox, phrase string) {
-	maxWidth := box.Bounds.Width
+	maxWidth := float64(box.Bounds.Width)
 	maxHeight := float64(box.Bounds.Height)
 	curFontSize := 9.0
 	for ; ; {
@@ -148,11 +148,15 @@ func SetFontSize(ctx *gg.Context, box *TemplateBox, phrase string) {
 		wrappedPhrase := ctx.WordWrap(phrase, float64(maxWidth))
 		lineCount := len(wrappedPhrase)
 		height := 0.0
+		width := 0.0
 		for i := 0; i < lineCount; i++ {
-			_,h := ctx.MeasureString(wrappedPhrase[i])
+			w,h := ctx.MeasureString(wrappedPhrase[i])
 			height = height + h
+			if w > width {
+				width = w
+			}
 		}
-		if height > maxHeight {
+		if height > maxHeight || width > maxWidth {
 			ctx.LoadFontFace("./Funhouse.ttf", curFontSize - 1)
 			return
 		}
