@@ -86,6 +86,7 @@ func (svc *ImageManager) GetRandomImage() (MacroTemplate, error) {
 	pathBuffer := bytes.NewBufferString(imageDirectory.String())
 	pathBuffer.WriteRune(os.PathSeparator)
 	pathBuffer.WriteString(pickedFile.Name())
+	log.Printf("Picked file %s\n", pickedFile.Name())
 	img, err := OpenImage(pathBuffer.String())
 	if err != nil {
 		return MacroTemplate{}, err
@@ -137,6 +138,28 @@ func OpenImage(path string) (image.Image, error){
 	return img, err
 }
 
+// Get the largest possible font size we can fit here
+func SetFontSize(ctx *gg.Context, box *TemplateBox, phrase string) {
+	maxWidth := box.Bounds.Width
+	maxHeight := float64(box.Bounds.Height)
+	curFontSize := 9.0
+	for ; ; {
+		ctx.LoadFontFace("./Funhouse.ttf", curFontSize)
+		wrappedPhrase := ctx.WordWrap(phrase, float64(maxWidth))
+		lineCount := len(wrappedPhrase)
+		height := 0.0
+		for i := 0; i < lineCount; i++ {
+			_,h := ctx.MeasureString(wrappedPhrase[i])
+			height = height + h
+		}
+		if height > maxHeight {
+			ctx.LoadFontFace("./Funhouse.ttf", curFontSize - 1)
+			return
+		}
+		curFontSize = curFontSize + 1
+	}
+}
+
 func (svc *ImageManager) WriteToImage(phrase string) image.Image {
 	img, err := svc.GetRandomImage()
 	if err != nil {
@@ -144,6 +167,7 @@ func (svc *ImageManager) WriteToImage(phrase string) image.Image {
 	}
 	sess := gg.NewContext(img.SourceMetadata.Width, img.SourceMetadata.Height)
 	sess.DrawImage(img.SourceImage, 0, 0)
+	SetFontSize(sess, &img.Boxes[0], phrase)
 	xPos := float64(img.Boxes[0].Bounds.X)
 	yPos := float64(img.Boxes[0].Bounds.Y)
 	sess.SetColor(color.Black)
